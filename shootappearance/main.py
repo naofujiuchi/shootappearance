@@ -178,7 +178,7 @@ class dataset:
         # Getting the uppermost fruit
         DVSI = (measuredtopleaf.id_truss - 1) + (measuredtopleaf.id_leaf - 1) * (1/3) + self.ncompfruit # The flower truss on ((uppermost leaf position) + ncompfruit) has just flowered. The default value of ncompfruit is 1.
         DVSI = float(DVSI)
-        topfruit = pd.DataFrame({'id_truss':math.floor(DVSI), 'id_fruit':math.ceil(math.modf(DVSI)[0]*nfruitave)},index=[0]) # id_truss and id_fruit of top fruit that has just flowered.
+        topfruit = pd.DataFrame({'id_truss':math.floor(DVSI), 'id_fruit':math.ceil(math.modf(DVSI)[0]*nfruitave+1)},index=[0]) # id_truss and id_fruit of top fruit that has just flowered.
         topfruitpos = DVSI + 0.001
 
         # Interpolating fruit measured data
