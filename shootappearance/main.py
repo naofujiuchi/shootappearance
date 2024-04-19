@@ -218,7 +218,7 @@ class dataset:
         self.compfruit['FAGE'] = (int(topfruit.id_truss) - self.compfruit.id_truss) * 7 + (int(topfruit.order) - self.compfruit.order)
         self.compfruit['DOEF'] = self.compfruit['FAGE'].apply(lambda x: measureddate - datetime.timedelta(days=int(x)))
 
-        return nleafonplant, nbranchontruss, self.compleaf, self.compfruit, DVSI, measureddate
+        return nleafonplant, nfruitave, nbranchontruss, self.compleaf, self.compfruit, DVSI, measureddate
     
     def Gompertz(self, t, a, b, c):
         f = a * np.exp(-b * c**t)

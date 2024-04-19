@@ -13,7 +13,7 @@ dftemp = pd.read_csv('dftemp.csv')
 # How many leaves are above the measured leaf? (= ncompleaf [trusses])
 # How many fruit tursses are above the measured fruit truss? (= ncompfruit [trusses])
 shootdata = sa.dataset(ncompleaf=2, ncompfruit=1, dfleafnum=dfleafnum, dffruitnum=dffruitnum, dfleafsize=dfleafsize, dffruitsize=dffruitsize, colleafnumcntruss='id_truss', colleafnumcnvalue='n_leaf', colfruitnumcntruss='id_truss', colfruitnumcnvalue='n_fruit', colleafsizecntruss='id_truss', colleafsizecnleaf='id_leaf', colleafsizecnvalue='value', colfruitsizecntruss='id_truss', colfruitsizecnfruit='id_fruit', colfruitsizecnvalue='value')
-nleafonplant, nbranchontruss, dfleaf, dffruit, DVSI, measureddate = shootdata.complement('2024-01-01')
+nleafonplant, nfruitave, nbranchontruss, dfleaf, dffruit, DVSI, measureddate = shootdata.complement('2024-01-01')
 
 # Fruit
 dffruitdvsf = shootdata.DVSF(compfruit=dffruit, measureddate=measureddate, dftemp=dftemp, coldate='Date', coltemp='Temp')
