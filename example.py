@@ -16,7 +16,7 @@ shootdata = sa.dataset(ncompleaf=2, ncompfruit=1, dfleafnum=dfleafnum, dffruitnu
 nleafonplant, nfruitave, nbranchontruss, dfleaf, dffruit, DVSI, measureddate = shootdata.complement('2024-01-01')
 
 # Fruit
-dffruitdvsf = shootdata.DVSF(compfruit=dffruit, measureddate=measureddate, dftemp=dftemp, coldate='Date', coltemp='Temp')
+dffruitdvsf = shootdata.DVSI(dfcomp=dffruit, coldoe='DOEF', coldvsi='DVSF', measureddate=measureddate, dftemp=dftemp, coldate='Date', coltemp='Temp')
 poptfruit, pcovfruit, ymaxfruit = shootdata.Gompertz_fit(df=dffruitdvsf, x='DVSF', y='value', inib=7, inic=0.1)
 dffruitdvsfest = shootdata.interpolate_and_Gompertz_est(df=dffruitdvsf, colx='DVSF', coly='value', Gompparams=poptfruit)
 dffruitdvsfestinit = shootdata.initial_fruit(df=dffruitdvsfest, coldiameter='value', DMC=0.08, unit_diameter='mm')
