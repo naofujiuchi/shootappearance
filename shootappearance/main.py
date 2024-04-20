@@ -111,7 +111,7 @@ class dataset:
         --------
         nbranchontruss: integer
             Number of branches of a truss for complemented trusses
-        DVSI: float
+        DVS: float
             Initial development stage of plant (number of flowered truss)
         LVAGE: integer
             Leaf age [d]
@@ -176,10 +176,10 @@ class dataset:
         nbranchontruss = nfruitave // maxfruitsonbranch + 1
 
         # Getting the uppermost fruit
-        DVSI = (measuredtopleaf.id_truss - 1) + (measuredtopleaf.id_leaf - 1) * (1/3) + self.ncompfruit # The flower truss on ((uppermost leaf position) + ncompfruit) has just flowered. The default value of ncompfruit is 1.
-        DVSI = float(DVSI)
-        topfruit = pd.DataFrame({'id_truss':math.floor(DVSI), 'id_fruit':math.ceil(math.modf(DVSI)[0]*nfruitave+1)},index=[0]) # id_truss and id_fruit of top fruit that has just flowered.
-        topfruitpos = DVSI + 0.001
+        DVS = (measuredtopleaf.id_truss - 1) + (measuredtopleaf.id_leaf - 1) * (1/3) + self.ncompfruit # The flower truss on ((uppermost leaf position) + ncompfruit) has just flowered. The default value of ncompfruit is 1.
+        DVS = float(DVS)
+        topfruit = pd.DataFrame({'id_truss':math.floor(DVS), 'id_fruit':math.ceil(math.modf(DVS)[0]*nfruitave+1)},index=[0]) # id_truss and id_fruit of top fruit that has just flowered.
+        topfruitpos = DVS + 0.001
 
         # Interpolating fruit measured data
         idtrussarray = []
@@ -218,7 +218,7 @@ class dataset:
         self.compfruit['FAGE'] = (int(topfruit.id_truss) - self.compfruit.id_truss) * 7 + (int(topfruit.order) - self.compfruit.order)
         self.compfruit['DOEF'] = self.compfruit['FAGE'].apply(lambda x: measureddate - datetime.timedelta(days=int(x)))
 
-        return nleafonplant, nfruitave, nbranchontruss, self.compleaf, self.compfruit, DVSI, measureddate
+        return nleafonplant, nfruitave, nbranchontruss, self.compleaf, self.compfruit, DVS, measureddate
     
     def Gompertz(self, t, a, b, c):
         f = a * np.exp(-b * c**t)
@@ -250,14 +250,19 @@ class dataset:
         popt, pcov = curve_fit(f = self.Gompertz, xdata = x_train, ydata = y_train, p0 = [ymean, inib, inic], maxfev = 800)
         return popt, pcov, ymax
     
-    def DVSF(self, compfruit, measureddate, dftemp, coldate, coltemp): 
+    def DVSI(self, dfcomp, coldoe, coldvsi, measureddate, dftemp, coldate, coltemp): 
         """
+        Develepment stage of individual fruit (DVSF) or leaf (DVSL).
         Initial value of parameter 'a' for Gompertz curve fitting is mean value of y.
 
         Arguments
         --------
-        compfriut: pandas DataFrame
-            self.compfruit output in the predescribed 'def complement()' function
+        dfcomp: pandas DataFrame
+            self.compfruit or self.compleaf output in the predescribed 'def complement()' function
+        coldoe: string
+            Column name of Day of Emergence of fruit (DOEF) or leaf (DOEL)
+        coldvsi: string
+            Output Column name of DVSI.
         measureddate: datetime.date
             measureddate output in the predescribed 'def complement()' function 
         dftemp: pandas DataFrame
@@ -268,33 +273,80 @@ class dataset:
             Column name of objective variable.
         """
         
-        self.compfruitdvsf = copy.deepcopy(compfruit)
+        self.compdvsi = copy.deepcopy(dfcomp)
         self.temp = copy.deepcopy(dftemp)
         self.temp = self.temp.rename(columns={coldate:'date', coltemp:'temp'})
         self.temp['date'] = self.temp['date'].apply(lambda x: parser.parse(x).date()) 
         
-        arrayDVSF = []
-        for index, row in self.compfruitdvsf.iterrows():
-            iter_date = row['DOEF']
+        arrayDVSI = []
+        for index, row in self.compdvsi.iterrows():
+            iter_date = row[coldoe]
             end_date = measureddate
             delta = datetime.timedelta(days=1)
-            _DVSF = 0
+            _DVSI = 0
             while iter_date < end_date:
                 temp_today = self.temp[self.temp['date']==iter_date]['temp']
-                _DVRF = self.DVRF(temp_today, _DVSF)
-                _DVSF += _DVRF
+                _DVRI = self.DVRI(temp_today, _DVSI)
+                _DVSI += _DVRI
                 iter_date += delta
-            arrayDVSF = np.concatenate([arrayDVSF, [_DVSF]])
-        self.compfruitdvsf['DVSF'] = arrayDVSF
-        return self.compfruitdvsf
+            arrayDVSI = np.concatenate([arrayDVSI, [_DVSI]])
+        self.compdvsi[coldvsi] = arrayDVSI
+        return self.compdvsi
 
-    def DVRF(self, temp, DVSF):
+    def DVRI(self, temp, DVSI):
         """
         DVRF (rate of developing stage of fruit) depends on daily mean temperature as the following equation (De Koning, 1994).
+        In this study, leaf also follows this development mechanism.
         """
 
-        DVRF = 0.0181 + math.log(temp/20) * (0.0392 - 0.213 * DVSF + 0.415 * DVSF**2 - 0.24 * DVSF**3)
-        return(DVRF)
+        DVRI = 0.0181 + math.log(temp/20) * (0.0392 - 0.213 * DVSI + 0.415 * DVSI**2 - 0.24 * DVSI**3)
+        return(DVRI)
+
+    # def DVSF(self, compfruit, measureddate, dftemp, coldate, coltemp): 
+    #     """
+    #     Initial value of parameter 'a' for Gompertz curve fitting is mean value of y.
+
+    #     Arguments
+    #     --------
+    #     compfriut: pandas DataFrame
+    #         self.compfruit output in the predescribed 'def complement()' function
+    #     measureddate: datetime.date
+    #         measureddate output in the predescribed 'def complement()' function 
+    #     dftemp: pandas DataFrame
+    #         Data including date (type: string) and daily average temperature [C] (type: numpy integer or float).
+    #     coldate: string
+    #         Column name of date.
+    #     coltemp: string
+    #         Column name of objective variable.
+    #     """
+        
+    #     self.compfruitdvsf = copy.deepcopy(compfruit)
+    #     self.temp = copy.deepcopy(dftemp)
+    #     self.temp = self.temp.rename(columns={coldate:'date', coltemp:'temp'})
+    #     self.temp['date'] = self.temp['date'].apply(lambda x: parser.parse(x).date()) 
+        
+    #     arrayDVSF = []
+    #     for index, row in self.compfruitdvsf.iterrows():
+    #         iter_date = row['DOEF']
+    #         end_date = measureddate
+    #         delta = datetime.timedelta(days=1)
+    #         _DVSF = 0
+    #         while iter_date < end_date:
+    #             temp_today = self.temp[self.temp['date']==iter_date]['temp']
+    #             _DVRF = self.DVRF(temp_today, _DVSF)
+    #             _DVSF += _DVRF
+    #             iter_date += delta
+    #         arrayDVSF = np.concatenate([arrayDVSF, [_DVSF]])
+    #     self.compfruitdvsf['DVSF'] = arrayDVSF
+    #     return self.compfruitdvsf
+
+    # def DVRF(self, temp, DVSF):
+    #     """
+    #     DVRF (rate of developing stage of fruit) depends on daily mean temperature as the following equation (De Koning, 1994).
+    #     """
+
+    #     DVRF = 0.0181 + math.log(temp/20) * (0.0392 - 0.213 * DVSF + 0.415 * DVSF**2 - 0.24 * DVSF**3)
+    #     return(DVRF)
     
     def interpolate_and_Gompertz_est(self, df, colx, coly, Gompparams): 
         dfest = copy.deepcopy(df)
