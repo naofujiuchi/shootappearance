@@ -407,7 +407,8 @@ class dataset:
         if unit_area == 'm2': 
             dfinit['LV'] = dfinit['LA'] / dfinit['SLA']
         elif unit_area == 'cm2':
-            dfinit['LV'] = dfinit['LA'] / 10000 / dfinit['SLA']
+            dfinit['LA'] = dfinit['LA'] / 10000 
+            dfinit['LV'] = dfinit['LA'] / dfinit['SLA']
         return dfinit
 
 
