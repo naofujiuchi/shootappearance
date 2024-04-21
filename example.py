@@ -4,6 +4,7 @@ import shootappearance.shootappearance as sa
 import pandas as pd
 import numpy as np
 import datetime
+import matplotlib.pyplot as plt
 
 dfleafnum = pd.read_csv('dfleafnum.csv')
 dffruitnum = pd.read_csv('dffruitnum.csv')
@@ -26,11 +27,28 @@ DOEFI = shootdata.twoddf(df=dffruitdvsfestinit, coltruss='id_truss', colindiv='i
 DVSFI = shootdata.twoddf(df=dffruitdvsfestinit, coltruss='id_truss', colindiv='id_fruit', colvalue='DVSF')
 
 # Leaf
-poptleaf, pcovleaf, ymaxleaf = shootdata.Gompertz_fit(df=dfleaf, x='LVAGE', y='value', inib=7, inic=0.9)
-dfleafest = shootdata.interpolate_and_Gompertz_est(df=dfleaf, colx='LVAGE', coly='value', Gompparams=poptleaf)
-dfleafestinit = shootdata.initial_leaf(df=dfleafest, colarea='value', SLA=0.05, unit_area='cm2')
-LAI = shootdata.twoddf(df=dfleafestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LA')
-LVI = shootdata.twoddf(df=dfleafestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LV')
-DOELI = shootdata.twoddf(df=dfleafestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='DOEL')
-LVAGEI = shootdata.twoddf(df=dfleafestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LVAGE')
-SLAI = shootdata.twoddf(df=dfleafestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LVAGE')
+dfleafdvsl = shootdata.DVSI(dfcomp=dfleaf, coldoe='DOEL', coldvsi='DVSL', measureddate=measureddate, dftemp=dftemp, coldate='Date', coltemp='Temp')
+# poptleaf, pcovleaf, ymaxleaf = shootdata.Gompertz_fit(df=dfleaf, x='LVAGE', y='value', inib=7, inic=0.9)
+poptleaf, pcovleaf, ymaxleaf = shootdata.Gompertz_fit(df=dfleafdvsl, x='DVSL', y='value', inib=7, inic=0.1)
+dfleafdvslest = shootdata.interpolate_and_Gompertz_est(df=dfleafdvsl, colx='DVSL', coly='value', Gompparams=poptleaf)
+dfleafdvslestinit = shootdata.initial_leaf(df=dfleafdvslest, colarea='value', SLA=0.05, unit_area='cm2')
+LAI = shootdata.twoddf(df=dfleafdvslestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LA')
+LVI = shootdata.twoddf(df=dfleafdvslestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LV')
+DOELI = shootdata.twoddf(df=dfleafdvslestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='DOEL')
+LVAGEI = shootdata.twoddf(df=dfleafdvslestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LVAGE')
+SLAI = shootdata.twoddf(df=dfleafdvslestinit, coltruss='id_truss', colindiv='id_leaf', colvalue='LVAGE')
+
+# Figure of Gompertz estimation
+def Gompertz(t, a, b, c):
+    f = a * np.exp(-b * c**t)
+    return f
+
+def curve_plot(x_train, y_train, est):
+    x_est = np.linspace(start = 0, stop = max(x_train), num = 100)
+    plt.scatter(x_train, y_train, color = 'r', label = 'Actual')
+    plt.plot(x_est, Gompertz(x_est, *est), label = 'Estimation with train data')
+    plt.legend()    
+    plt.show()
+
+print(poptfruit)
+curve_plot(x_train=dfleafdvsl['DVSL'], y_train = dfleafdvsl['value'], est=poptleaf)
