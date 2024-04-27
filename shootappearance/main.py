@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 from dateutil import parser
 
 class dataset:
-    def __init__(self, dfleafnum, dffruitnum, dfleafsize, dffruitsize, colleafnumcntruss='id_truss', colleafnumcnvalue='n_leaf', colfruitnumcntruss='id_truss', colfruitnumcnvalue='n_fruit', colleafsizecntruss='id_truss', colleafsizecnleaf='id_leaf', colleafsizecnvalue='value', colfruitsizecntruss='id_truss', colfruitsizecnfruit='id_fruit', colfruitsizecnvalue='value', unit='cm', ncompleaf=4, ncompfruit=1):
+    def __init__(self, dfleafnum, dffruitnum, dfleafsize, dffruitsize, coltruss_dfleafnum='id_truss', colvalue_dfleafnum='n_leaf', coltruss_dffruitnum='id_truss', colvalue_dffruitnum='n_fruit', coltruss_dfleafsize='id_truss', colleaf_dfleafsize='id_leaf', colvalue_dfleafsize='value', coltruss_dffruitsize='id_truss', colfruit_dffruitsize='id_fruit', colvalue_dffruitsize='value', unit_leaf='cm2', unit_fruit='cm', ncompleaf=4, ncompfruit=1):
         """
         Arguments
         ----------
@@ -38,7 +38,7 @@ class dataset:
             id_fruit of the proximal fruit is 1.
             The default unit of value is cm.
             Don't contain "None" or "NaN" values.
-        dfleafnumcntruss, dfleafnumcnvalue, dffruitnumcntruss, dffruitnumcnvalue, dfleafsizecntruss, dfleafsizecnleaf, dfleafsizecnvalue, dffruitsizecntruss, dffruitsizecnfruit, dffruitsizecnvalue: string
+        coltruss_dfleafnum, colvalue_dfleafnum, coltruss_dffruitnum, colvalue_dffruitnum, coltruss_dfleafsize, colleaf_dfleafsize, colvalue_dfleafsize, coltruss_dffruitsize, colfruit_dffruitsize, colvalue_dffruitsize: string
             Column names.
         """
 
@@ -47,17 +47,29 @@ class dataset:
 
         # copying input dataframes
         self.nleaf = copy.deepcopy(dfleafnum)
-        self.nleaf = self.nleaf.rename(columns={colleafnumcntruss:'id_truss', colleafnumcnvalue:'n_leaf'})
+        self.nleaf = self.nleaf.rename(columns={coltruss_dfleafnum:'id_truss', colvalue_dfleafnum:'n_leaf'})
         self.nleaf = self.nleaf.sort_values(['id_truss'], ascending=True)
         self.nfruit = copy.deepcopy(dffruitnum)
-        self.nfruit = self.nfruit.rename(columns={colfruitnumcntruss:'id_truss', colfruitnumcnvalue:'n_fruit'})
+        self.nfruit = self.nfruit.rename(columns={coltruss_dffruitnum:'id_truss', colvalue_dffruitnum:'n_fruit'})
         self.nfruit = self.nfruit.sort_values(['id_truss'], ascending=True)
         self.leaf = copy.deepcopy(dfleafsize)
-        self.leaf = self.leaf.rename(columns={colleafsizecntruss:'id_truss', colleafsizecnleaf:'id_leaf', colleafsizecnvalue:'value'})
+        self.leaf = self.leaf.rename(columns={coltruss_dfleafsize:'id_truss', colleaf_dfleafsize:'id_leaf', colvalue_dfleafsize:'value'})
         self.leaf = self.leaf.sort_values(['id_truss','id_leaf'], ascending=True)
         self.fruit = copy.deepcopy(dffruitsize)
-        self.fruit = self.fruit.rename(columns={colfruitsizecntruss:'id_truss', colfruitsizecnfruit:'id_fruit', colfruitsizecnvalue:'value'})
+        self.fruit = self.fruit.rename(columns={coltruss_dffruitsize:'id_truss', colfruit_dffruitsize:'id_fruit', colvalue_dffruitsize:'value'})
         self.fruit = self.fruit.sort_values(['id_truss','id_fruit'], ascending=True)
+
+        # Value of dfleafsize will be used as leaf area [m2]
+        if unit_leaf == 'cm2': 
+            self.leaf['value'] = self.leaf['value'] / 10000
+        if unit_leaf == 'm2': 
+            self.leaf['value'] = self.leaf['value']
+        
+        # Value of dffruitsize will be used as fruit diameter [cm]
+        if unit_fruit == 'cm':
+            self.fruit['value'] = self.fruit['value']
+        elif unit_fruit == 'mm': 
+            self.fruit['value'] = self.fruit['value'] / 10
 
     def expand_grid(self, data_dict):
         """Create a dataframe from every combination of given values."""
@@ -360,7 +372,7 @@ class dataset:
                     dfest.loc[index, coly] = estimatedvalue
         return dfest        
 
-    def initial_fruit(self, df, coldiameter, DMC, unit_diameter='cm'):
+    def initial_fruit(self, df, coldiameter, DMC):
         """
         Make initial values for TOMULATION.
         FF: fruit fresh mass [gFM]
@@ -378,16 +390,13 @@ class dataset:
         """
         
         dfinit = copy.deepcopy(df)
-        if unit_diameter == 'cm': 
-            r = dfinit[coldiameter]/2
-        elif unit_diameter == 'mm':
-            r = dfinit[coldiameter]/10/2
+        r = dfinit[coldiameter]/2
         dfinit['FF'] = 4/3 * math.pi * r **3
         dfinit['DMC'] = DMC
         dfinit['FD'] = dfinit['FF'] * dfinit['DMC']
         return dfinit
 
-    def initial_leaf(self, df, colarea, SLA=0.05, unit_area='m2'):
+    def initial_leaf(self, df, colarea, SLA=0.05):
         """
         Make initial values for TOMULATION.
 
@@ -404,11 +413,7 @@ class dataset:
         dfinit = copy.deepcopy(df)
         dfinit = dfinit.rename(columns={colarea:'LA'})
         dfinit['SLA'] = SLA
-        if unit_area == 'm2': 
-            dfinit['LV'] = dfinit['LA'] / dfinit['SLA']
-        elif unit_area == 'cm2':
-            dfinit['LA'] = dfinit['LA'] / 10000 
-            dfinit['LV'] = dfinit['LA'] / dfinit['SLA']
+        dfinit['LV'] = dfinit['LA'] / dfinit['SLA']
         return dfinit
 
 
